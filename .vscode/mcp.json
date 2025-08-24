@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "local-mcp": {
+      "command": "python",
+      "args": ["C:/ZezTechnology/mcp-server-qa/mcp_server.py"],
+    }
+  }
+}
