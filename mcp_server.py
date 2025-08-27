@@ -2,6 +2,7 @@ import ast
 import re
 import json
 from typing import Dict, List, Any, Optional, Union
+from analyzers.java_Analyzer import JavaStaticAnalyzer, JavaFlowSummarizer, JavaPromptGenerator
 from mcp.server.fastmcp import FastMCP
 
 # Inicializar o servidor MCP
@@ -467,6 +468,11 @@ static_analyzer = StaticAnalyzer()
 flow_summarizer = FlowSummarizer()
 prompt_generator = PromptGenerator()
 
+# Instanciar as classes Java
+java_static_analyzer = JavaStaticAnalyzer()
+java_flow_summarizer = JavaFlowSummarizer()
+java_prompt_generator = JavaPromptGenerator()
+
 
 @mcp.tool()
 def analyze_function_static(code: str) -> Dict[str, Any]:
@@ -542,6 +548,127 @@ def generate_test_prompt(code: str, language: str = "python",
         static_analysis, flow_analysis, language, test_framework
     )
 
+    # TOOLS PARA ANÁLISE JAVA - Adicione estes métodos ao seu mcp_server.py
+
+@mcp.tool()
+def analyze_java_method_static(code: str) -> Dict[str, Any]:
+    """
+    Ferramenta 1: Analisador Estático para Java
+    
+    Extrai informações estruturais de um método Java:
+    - Assinatura completa com modificadores
+    - Parâmetros, tipos e anotações
+    - Tipo de retorno
+    - Exceções declaradas
+    - Dependências (imports)
+    - Anotações do método
+    
+    Args:
+        code: Código fonte do método Java a ser analisado
+        
+    Returns:
+        Dicionário com informações estruturais do método Java
+    """
+    return java_static_analyzer.analyze_method(code)
+
+
+@mcp.tool()
+def summarize_java_method_flow(code: str) -> Dict[str, Any]:
+    """
+    Ferramenta 2: Resumidor de Fluxo para Java
+    
+    Analisa o fluxo de execução do método Java e cria um mapa minimalista:
+    - Estruturas de controle (if/else, for, while)
+    - Blocos try-catch-finally
+    - Lançamento de exceções
+    - Pontos de retorno
+    - Complexidade ciclomática
+    
+    Args:
+        code: Código fonte do método Java a ser analisado
+        
+    Returns:
+        Dicionário com mapa de fluxo e métricas de complexidade
+    """
+    return java_flow_summarizer.summarize_flow(code)
+
+
+@mcp.tool()
+def generate_java_test_prompt(code: str, test_framework: str = "junit5") -> Dict[str, Any]:
+    """
+    Ferramenta 3: Gerador de Prompt para Testes Java
+    
+    Combina análise estática e de fluxo para gerar um prompt otimizado
+    para LLMs criarem testes unitários Java com estrutura de saída fixa.
+    
+    Args:
+        code: Código fonte do método Java
+        test_framework: Framework de teste (junit5, junit4)
+        
+    Returns:
+        Dicionário com prompt otimizado e metadados
+    """
+    # Executar análises
+    static_analysis = java_static_analyzer.analyze_method(code)
+    flow_analysis = java_flow_summarizer.summarize_flow(code)
+    
+    # Verificar se houve erros nas análises
+    if "error" in static_analysis:
+        return {"error": f"Erro na análise estática Java: {static_analysis['error']}"}
+    
+    if "error" in flow_analysis:
+        return {"error": f"Erro na análise de fluxo Java: {flow_analysis['error']}"}
+    
+    # Gerar prompt
+    return java_prompt_generator.generate_test_prompt(
+        static_analysis, flow_analysis, test_framework
+    )
+
+
+@mcp.tool()
+def analyze_and_generate_java_complete(code: str, test_framework: str = "junit5") -> Dict[str, Any]:
+    """
+    Ferramenta Combinada: Análise Completa Java e Geração de Prompt
+    
+    Executa todas as três ferramentas Java em sequência e retorna
+    um relatório completo com análise detalhada e prompt otimizado.
+    
+    Args:
+        code: Código fonte do método Java
+        test_framework: Framework de teste (junit5, junit4)
+        
+    Returns:
+        Relatório completo com todas as análises Java e prompt final
+    """
+    static_analysis = java_static_analyzer.analyze_method(code)
+    flow_analysis = java_flow_summarizer.summarize_flow(code)
+    
+    if "error" in static_analysis or "error" in flow_analysis:
+        return {
+            "static_analysis": static_analysis,
+            "flow_analysis": flow_analysis,
+            "error": "Erro em uma ou mais análises Java"
+        }
+    
+    prompt_result = java_prompt_generator.generate_test_prompt(
+        static_analysis, flow_analysis, test_framework
+    )
+    
+    return {
+        "static_analysis": static_analysis,
+        "flow_analysis": flow_analysis,
+        "prompt_generation": prompt_result,
+        "summary": {
+            "method_signature": static_analysis.get("signature"),
+            "modifiers": static_analysis.get("modifiers"),
+            "complexity_score": flow_analysis.get("complexity_score"),
+            "estimated_tests": prompt_result.get("metadata", {}).get("estimated_tests"),
+            "framework": test_framework,
+            "ready_for_llm": True
+        }
+    }
+
+
 
 @mcp.tool()
 def analyze_and_generate_complete(code: str, language: str = "python", 
@@ -554,37 +681,88 @@ def analyze_and_generate_complete(code: str, language: str = "python",
     
     Args:
         code: Código fonte da função
-        language: Linguagem de programação
-        test_framework: Framework de teste
+        language: Linguagem de programação (python, java, javascript)
+        test_framework: Framework de teste (pytest, junit5, jest)
         
     Returns:
         Relatório completo com todas as análises e prompt final
     """
-    static_analysis = static_analyzer.analyze_function(code)
-    flow_analysis = flow_summarizer.summarize_flow(code)
+    # Normalizar entradas
+    language = language.lower()
     
-    if "error" in static_analysis or "error" in flow_analysis:
+    # Mapear frameworks padrão por linguagem
+    if test_framework == "auto":
+        framework_map = {
+            "python": "pytest",
+            "java": "junit5", 
+            "javascript": "jest",
+            "typescript": "jest"
+        }
+        test_framework = framework_map.get(language, "pytest")
+    
+    # Mapear junit para junit5 se necessário
+    if language == "java" and test_framework == "junit":
+        test_framework = "junit5"
+    
+    # Executar análise baseada na linguagem
+    if language == "java":
+        static_analysis = java_static_analyzer.analyze_method(code)
+        flow_analysis = java_flow_summarizer.summarize_flow(code)
+        
+        if "error" in static_analysis or "error" in flow_analysis:
+            return {
+                "static_analysis": static_analysis,
+                "flow_analysis": flow_analysis,
+                "error": "Erro em uma ou mais análises Java"
+            }
+        
+        prompt_result = java_prompt_generator.generate_test_prompt(
+            static_analysis, flow_analysis, test_framework
+        )
+        
         return {
             "static_analysis": static_analysis,
             "flow_analysis": flow_analysis,
-            "error": "Erro em uma ou mais análises"
+            "prompt_generation": prompt_result,
+            "summary": {
+                "method_signature": static_analysis.get("signature"),
+                "modifiers": static_analysis.get("modifiers"),
+                "complexity_score": flow_analysis.get("complexity_score"),
+                "estimated_tests": prompt_result.get("metadata", {}).get("estimated_tests"),
+                "language": language,
+                "framework": test_framework,
+                "ready_for_llm": True
+            }
         }
-    
-    prompt_result = prompt_generator.generate_test_prompt(
-        static_analysis, flow_analysis, language, test_framework
-    )
-    
-    return {
-        "static_analysis": static_analysis,
-        "flow_analysis": flow_analysis,
-        "prompt_generation": prompt_result,
-        "summary": {
-            "function_signature": static_analysis.get("signature"),
-            "complexity_score": flow_analysis.get("complexity_score"),
-            "estimated_tests": prompt_result.get("metadata", {}).get("estimated_tests"),
-            "ready_for_llm": True
+    else:
+        # Python, JavaScript e outras linguagens
+        static_analysis = static_analyzer.analyze_function(code)
+        flow_analysis = flow_summarizer.summarize_flow(code)
+        
+        if "error" in static_analysis or "error" in flow_analysis:
+            return {
+                "static_analysis": static_analysis,
+                "flow_analysis": flow_analysis,
+                "error": "Erro em uma ou mais análises"
+            }
+        
+        prompt_result = prompt_generator.generate_test_prompt(
+            static_analysis, flow_analysis, language, test_framework
+        )
+        
+        return {
+            "static_analysis": static_analysis,
+            "flow_analysis": flow_analysis,
+            "prompt_generation": prompt_result,
+            "summary": {
+                "function_signature": static_analysis.get("signature"),
+                "complexity_score": flow_analysis.get("complexity_score"),
+                "estimated_tests": prompt_result.get("metadata", {}).get("estimated_tests"),
+                "language": language,
+                "framework": test_framework,
+                "ready_for_llm": True
+            }
         }
-    }
 
 
 if __name__ == "__main__":

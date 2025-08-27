@@ -3,13 +3,15 @@
 ## 🎯 Prompt Universal (Cole e Use)
 
 ```
-Você tem acesso ao MCP Code Analyzer. Para qualquer código que eu mostrar:
+Você tem acesso ao MCP Code Analyzer com detecção automática avançada. Para qualquer código que eu mostrar:
 
 1. Use @code-analyzer analyze_and_generate_complete automaticamente
-2. Apresente resumo da análise (complexidade, estrutura, pontos de atenção)
-3. Se eu pedir testes, execute o prompt gerado e entregue código pronto
-4. Se eu pedir melhorias, sugira baseado na análise de fluxo
-5. Sempre identifique a linguagem e use o framework apropriado (pytest/junit/jest)
+2. Linguagem detectada automaticamente (Python, Java, JavaScript)
+3. Framework selecionado automaticamente (Python→pytest, Java→junit5, JS→jest)
+4. Apresente resumo da análise (complexidade, estrutura, pontos de atenção)
+5. Se eu pedir testes, execute o prompt gerado e entregue código pronto
+6. Se eu pedir melhorias, sugira baseado na análise de fluxo
+7. Para Java: considere modificadores, anotações e exceções automaticamente
 
 Seja direto, prático e sempre use as ferramentas MCP como base para suas respostas.
 ```
@@ -18,19 +20,20 @@ Seja direto, prático e sempre use as ferramentas MCP como base para suas respos
 
 ### Para Análise Rápida
 ```
-Analise: @code-analyzer analyze_function_static
+Análise: @code-analyzer analyze_function_static
 
 [SEU CÓDIGO AQUI]
 
-Me dê os 3 pontos mais importantes sobre esta função.
+Me dê os 3 pontos mais importantes sobre esta função/método.
 ```
 
-### Para Testes Completos
+### Para Testes Completos (RECOMENDADO)
 ```
 Testes completos: @code-analyzer analyze_and_generate_complete
 
 [SEU CÓDIGO AQUI]
 
+Detecta linguagem automaticamente e usa framework padrão.
 Execute o prompt e me entregue os testes prontos para usar.
 ```
 
@@ -40,16 +43,25 @@ Complexidade: @code-analyzer summarize_function_flow
 
 [SEU CÓDIGO AQUI]
 
-Esta função está muito complexa? Sugira simplificações.
+Esta função/método está muito complexo? Sugira simplificações.
 ```
 
-### Para Prompt Personalizado
+### Para Forçar Linguagem/Framework Específico
 ```
-@code-analyzer generate_test_prompt language="[python|java|javascript]" framework="[pytest|junit|jest]"
+@code-analyzer analyze_and_generate_complete language="[python|java|javascript]" framework="[pytest|junit5|jest]"
 
 [SEU CÓDIGO AQUI]
 
 Use este prompt gerado para criar testes otimizados.
+```
+
+### Para Java Específico
+```
+Java especializado: @code-analyzer analyze_and_generate_java_complete
+
+[SEU CÓDIGO JAVA AQUI]
+
+Análise otimizada para modificadores, anotações e exceções Java.
 ```
 
 ## 🎪 Templates por Cenário
@@ -111,12 +123,13 @@ Foco: testes que guiam o design.
 
 ## 🎨 Customizações por Linguagem
 
-### Python
+### Python (Auto-Detectado)
 ```
-Python + MCP: @code-analyzer analyze_and_generate_complete language="python" framework="pytest"
+Python + MCP: @code-analyzer analyze_and_generate_complete
 
 [CÓDIGO PYTHON]
 
+Framework: pytest (automático)
 Extras:
 - Use type hints
 - Considere async/await se aplicável  
@@ -124,25 +137,30 @@ Extras:
 - Mock para requests/db calls
 ```
 
-### Java
+### Java (Auto-Detectado + Melhorado)
 ```
-Java + MCP: @code-analyzer analyze_and_generate_complete language="java" framework="junit"
+Java + MCP: @code-analyzer analyze_and_generate_complete
 
 [CÓDIGO JAVA]
 
-Extras:
+Framework: junit5 (automático)
+Recursos avançados:
+- Detecta modificadores automaticamente (public, static, etc.)
+- Analisa anotações (@Override, @Test, etc.)
+- Mapeia exceções declaradas
 - Siga convenções Spring se aplicável
 - Use Mockito para mocks
 - Considere @ParameterizedTest para múltiplos casos
 - Valide exceptions com assertThrows
 ```
 
-### JavaScript
+### JavaScript (Auto-Detectado)
 ```
-JavaScript + MCP: @code-analyzer analyze_and_generate_complete language="javascript" framework="jest"
+JavaScript + MCP: @code-analyzer analyze_and_generate_complete
 
 [CÓDIGO JS]
 
+Framework: jest (automático)
 Extras:
 - Mock APIs com jest.mock()
 - Teste async functions adequadamente
@@ -156,14 +174,20 @@ Extras:
 # Análise express
 "@code-analyzer analyze_function_static [CÓDIGO] → resumo em 3 pontos"
 
-# Testes instantâneos  
-"@code-analyzer generate_test_prompt [CÓDIGO] → execute e entregue testes"
+# Testes instantâneos com auto-detecção
+"@code-analyzer analyze_and_generate_complete [CÓDIGO] → detecta linguagem + testes"
 
 # Check de complexidade
 "@code-analyzer summarize_function_flow [CÓDIGO] → muito complexo?"
 
-# Pipeline completo
+# Pipeline completo com auto-detecção
 "@code-analyzer analyze_and_generate_complete [CÓDIGO] → análise + testes"
+
+# Java especializado
+"@code-analyzer analyze_and_generate_java_complete [CÓDIGO JAVA] → análise otimizada"
+
+# Forçar framework específico
+"@code-analyzer analyze_and_generate_complete language='java' framework='junit5' [CÓDIGO]"
 
 # Comparação
 "Compare complexidade: @code-analyzer summarize_function_flow [CÓDIGO1] vs [CÓDIGO2]"
@@ -231,11 +255,13 @@ Modo Reviewer: Use MCP + critérios rigorosos
 
 ## 💡 Pro Tips
 
-1. **Sempre especifique linguagem** para melhores resultados
-2. **Use análise completa** como ponto de partida padrão  
-3. **Execute prompts gerados** - não apenas copie
-4. **Combine com seu conhecimento** - MCP é ferramenta, não substituto
-5. **Itere baseado em feedback** - use análises para melhorar código
-6. **Mantenha contexto** - ferramentas MCP são mais precisas com contexto claro
+1. **Auto-detecção avançada**: analyze_and_generate_complete detecta linguagem e framework automaticamente
+2. **Use análise completa** como ponto de partida padrão - mais eficiente que ferramentas individuais
+3. **Java melhorado**: Suporte completo para modificadores, anotações e exceções
+4. **Execute prompts gerados** - não apenas copie
+5. **Combine com seu conhecimento** - MCP é ferramenta, não substituto
+6. **Itere baseado em feedback** - use análises para melhorar código
+7. **Frameworks automáticos**: Python→pytest, Java→junit5, JS→jest
+8. **Forçe apenas quando necessário** - especifique language/framework apenas em casos especiais
 
 **🚀 Cole qualquer um desses prompts no Copilot e comece a usar imediatamente!**
